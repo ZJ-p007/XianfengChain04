@@ -1,6 +1,11 @@
 package chain
 
-import "time"
+import (
+	"XianfengChain04/utils"
+	"bytes"
+	"crypto/sha256"
+	"time"
+)
 
 const VERSION = 0x00
 /**
@@ -20,6 +25,21 @@ type Block struct {
 }
 
 /**
+ *计算区块的哈希值并进行赋值
+ */
+func (block *Block)CalculateBlockHash(){
+	heightByte,_ := utils.Int2Byte(block.Height)
+	versionByte,_:= utils.Int2Byte(block.Version)
+	timeByte,_ := utils.Int2Byte(block.TimeStamp)
+	nonceByte,_:= utils.Int2Byte(block.Nonce)
+
+	blockBytes:= bytes.Join([][]byte{heightByte,versionByte,block.PrevHash[:],timeByte,nonceByte,block.Data},[]byte{})
+	//为区块的哈希字段赋值
+	block.Hash = sha256.Sum256(blockBytes)
+	//fmt.Println("区块的哈希值是:",block.Hash)
+}
+
+/**
  *生成创世区块的函数
  */
 func CreateGenesis(data []byte) Block {
@@ -33,6 +53,8 @@ func CreateGenesis(data []byte) Block {
 		Data:      data,
 	}
 	//todo 计算设置哈希 寻找并设置nonce
+	//计算并设置哈希
+	genesis.CalculateBlockHash()
 	return genesis
 }
 
@@ -50,8 +72,8 @@ func NewBlock(height int64,prev [32]byte,data []byte) Block {
 		Data:      data,
 	}
 	//todo 设置哈希 寻找并设置nonce
-
-
+	//设置区块哈希
+	newBlock.CalculateBlockHash()
 	return newBlock
 }
 

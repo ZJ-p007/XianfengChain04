@@ -12,7 +12,7 @@ import (
   *2、 接口
  */
 
-const DIFFICULTY  = 20//难度值系数
+const DIFFICULTY  = 15//难度值系数
 
 type PoW struct {
 	Block BlockInterface

@@ -25,6 +25,26 @@ type Block struct {
 	Data []byte
 }
 
+func (block Block) GetHeight() int64 {
+	return block.Height
+}
+
+func (block Block) GetVersion() int64 {
+	return block.Version
+}
+
+func (block Block) GetTimeStamp() int64 {
+	return block.TimeStamp
+}
+
+func (block Block) GetPreHash() [32]byte {
+	return block.PrevHash
+}
+
+func (block Block) GetData() []byte {
+	return block.Data
+}
+
 /**
  *计算区块的哈希值并进行赋值
  */
@@ -48,15 +68,13 @@ func CreateGenesis(data []byte) Block {
 		Height:    0,
 		Version:   VERSION,
 		PrevHash:  [32]byte{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		Hash:      [32]byte{},
+		/*Hash:      [32]byte{},*/
 		TimeStamp: time.Now().Unix(),
-		//Nonce:     0,
 		Data:      data,
 	}
 	//todo 计算设置哈希 寻找并设置nonce
 	//计算并设置哈希
 	genesis.CalculateBlockHash()
-
 	proof := consensus.NewPow(genesis)
 	genesis.Nonce = proof.FindNonce()
 	return genesis
@@ -70,7 +88,7 @@ func NewBlock(height int64,prev [32]byte,data []byte) Block {
 		Height:    height+1,
 		Version:   VERSION,
 		PrevHash:  prev,
-		Hash:      [32]byte{},
+		/*Hash:      [32]byte{},*/
 		TimeStamp: time.Now().Unix(),
 		//Nonce:     0,
 		Data:      data,

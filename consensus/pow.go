@@ -9,7 +9,7 @@ import (
 
 /**目的：拿到区块的属性数据(属性值)
   *1、通过结构体引用，引用block结构体，然后访问其属性
-  *2、接口
+  *2、 接口
  */
 
 const DIFFICULTY  = 20//难度值系数
@@ -22,7 +22,7 @@ type PoW struct {
 /**
  *
  */
-func (pow PoW) FindNonce() int64 {
+func (pow PoW) FindNonce() ([32]byte,int64) {
 	//fmt.Println("这里是共识机制POW")
 	var nonce int64
 	nonce = 0
@@ -49,11 +49,11 @@ func (pow PoW) FindNonce() int64 {
 		//result := bytes.Compare(hash[:], target.Bytes())
 		result := hashBig.Cmp(target)
 		if result == -1 {
-			return nonce
+			return hash,nonce
 		}
 		nonce++ //否则nonce自增
 	}
-	return 0
+	//return 0
 }
 
 /**

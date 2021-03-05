@@ -26,3 +26,5 @@ func (chain *BlockChain)CreateNewBlock(data []byte) {
 	newBlock :=NewBlock(lastBlock.Height,lastBlock.Hash,lastBlock.Data)
 	chain.Blocks = append(chain.Blocks,newBlock)
 }
+
+

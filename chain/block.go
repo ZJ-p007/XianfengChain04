@@ -80,9 +80,6 @@ func Deserialize(data []byte) (Block,error) {
 	return block,err
 }
 
-
-
-
 /**
  *生成创世区块的函数
  */
@@ -102,10 +99,9 @@ func CreateGenesis(data []byte) Block {
 	hash,nonce := proof.FindNonce()
 	genesis.Hash = hash
 	genesis.Nonce = nonce
-	//todo 计算设置哈希 寻找并设置nonce
+	//计算设置哈希 寻找并设置nonce
 	//计算并设置哈希
 	//genesis.CalculateBlockHash()
-
 	return genesis
 }
 

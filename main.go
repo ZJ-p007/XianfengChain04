@@ -2,11 +2,20 @@ package main
 
 import (
 	"XianfengChain04/chain"
-
 	"fmt"
+	"github.com/bolt"
 )
 
+const BLOCKS = "Genesis.db"
+
 func main() {
+	//打开数据库文件
+	db, err := bolt.Open(BLOCKS, 0600, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close() //xxx.db.lock
+
 	//fmt.Println("BlockChain")
 	/*block0 := chain.Block{
 		Height:    0,
@@ -19,15 +28,52 @@ func main() {
 	}*/
 	/*block0 := chain.CreateGenesis([]byte("Blockchian"))
 	block1 := chain.NewBlock(block0.Height,block0.Hash,[]byte("Hello word"))*/
-	blockChain := chain.CreatChainWithGensis([]byte("HelloWord"))
-	blockChain.CreateNewBlock([]byte("Hello"))
 
-	fmt.Println("区块链的个数:",len(blockChain.Blocks))
+	blockChain := chain.CreateChain(db)
+	//创世区块
+	err = blockChain.CreatGenesis([]byte("hello word"))
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
-	fmt.Println("区块0:",blockChain.Blocks[0])
-	fmt.Println("区块1:",blockChain.Blocks[1])
+	//新增一个区块
+	err = blockChain.CreateNewBlock([]byte("hello word"))
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
-	firstBlock := blockChain.Blocks[0]
+	//
+	lastBlock,err := blockChain.GetLastBlock()
+	if err !=nil{
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println("最新区块：",lastBlock)
+
+	blocks,err := blockChain.GetAllBlocks()
+	if err != nil{
+		fmt.Println(err.Error())
+		return
+	}
+	for index,block := range blocks{
+		fmt.Printf("第%d个区块:\n",index)
+		fmt.Println(block)
+	}
+
+	/*
+		blockChain := chain.CreatChainWithGensis([]byte("HelloWord"))
+		blockChain.DB = db
+		blockChain.CreateNewBlock([]byte("Hello"))
+	*/
+
+	/*	fmt.Println("区块链的个数:",len(blockChain.Blocks))
+		fmt.Println("区块0:",blockChain.Blocks[0])
+		fmt.Println("区块1:",blockChain.Blocks[1])
+	*/
+
+	/*firstBlock := blockChain.Blocks[0]
 	firstBytes,err := firstBlock.Serialize()
 	if err != nil{
 		panic(err.Error())
@@ -38,4 +84,5 @@ func main() {
 		panic(err.Error())
 	}
 	fmt.Println(string(deFirstBlock.Data))
+	*/
 }

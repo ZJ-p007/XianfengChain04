@@ -42,14 +42,14 @@ func (chain *BlockChain) CreatGenesis(data []byte) error {
 		//先查看
 		lastHash := bucket.Get([]byte(LASTHASH))
 		if len(lastHash) == 0 {
-			gensis := CreateGenesis(data)
-			genSerBytes, _ := gensis.Serialize()
+			genesis := CreateGenesis(data)
+			genSerBytes, _ := genesis.Serialize()
 			//bucket已经存在
-			bucket.Put(gensis.Hash[:], genSerBytes) //把创世区块保存到boltdb中
+			bucket.Put(genesis.Hash[:], genSerBytes) //把创世区块保存到boltdb中
 			//使用一个标志用来记录最新区块的hash，以标明当前文件中存储到了最新的哪个区块
-			bucket.Put([]byte(LASTHASH), gensis.Hash[:])
-			//把gensis赋值给chain的lastBlock
-			chain.LastBlock = gensis
+			bucket.Put([]byte(LASTHASH), genesis.Hash[:])
+			//把genesis赋值给chain的lastBlock
+			chain.LastBlock = genesis
 		} else {
 			//lasthash有值，长度不为0，什么都不干
 

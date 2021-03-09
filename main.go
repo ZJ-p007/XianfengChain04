@@ -14,7 +14,7 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	defer db.Close() //xxx.db.lock
+	defer db.Close()
 
 	//fmt.Println("BlockChain")
 	/*block0 := chain.Block{
@@ -44,7 +44,6 @@ func main() {
 		return
 	}
 
-	//
 	lastBlock := blockChain.GetLastBlock()
 	/*if err !=nil{
 		fmt.Println(err.Error())

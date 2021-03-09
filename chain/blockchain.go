@@ -14,17 +14,18 @@ const LASTHASH = "lasthash"
 type BlockChain struct {
 	//Blocks []Block
 	DB *bolt.DB
+	LastBlock Block//最新最后的区块
 }
 
 func CreateChain(db *bolt.DB) BlockChain {
-	return BlockChain{db}
+	return BlockChain{DB:db}
 }
 
 /**
  *创建一个区块链对象，包含一个创世区块
  */
 func (chain *BlockChain) CreatGenesis(data []byte) error {
-	/*gensis := CreateGenesis(data)
+	/*genesis := CreateGenesis(data)
 	genSerBytes,err :=gensis.Serialize()*/
 	var err error
 	//gensis持久化到db中去
@@ -47,8 +48,16 @@ func (chain *BlockChain) CreatGenesis(data []byte) error {
 			bucket.Put(gensis.Hash[:], genSerBytes) //把创世区块保存到boltdb中
 			//使用一个标志用来记录最新区块的hash，以标明当前文件中存储到了最新的哪个区块
 			bucket.Put([]byte(LASTHASH), gensis.Hash[:])
+			//把gensis赋值给chain的lastBlock
+			chain.LastBlock = gensis
 		} else {
 			//lasthash有值，长度不为0，什么都不干
+
+			//从文件中读取出最新的区块，并赋值给内存中的chain中的LastBlock
+			lastHash := bucket.Get([]byte(LASTHASH))
+			lastBlockBytes := bucket.Get(lastHash)
+			//把反序列化的最后最新区块赋值给chain.LastBlock
+			chain.LastBlock,err = Deserialize(lastBlockBytes)
 		}
 		return nil
 	})
@@ -73,9 +82,9 @@ func (chain *BlockChain) CreateNewBlock(data []byte) error {
 	*/
 
 	//1、从文件中查到当前存储的最新区块数据
-	db := chain.DB
-	var err error
-	var lastBlock Block
+	lastBlock := chain.LastBlock
+	//var lastBlock Block
+	/*
 	db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BLOCKS))
 		if bucket == nil { //桶为空
@@ -91,7 +100,11 @@ func (chain *BlockChain) CreateNewBlock(data []byte) error {
 		}
 		return nil
 	})
-	//3、根据获取的最新区块生成一个新区块
+	*/
+	//lastBlock := chain.LastBlock
+
+	//3、
+	var err error
 	newBlock := NewBlock(lastBlock.Height, lastBlock.Hash, data)
 	//4、将最新区块序列化，得到序列化数据
 	newBlockSerBytes, err := newBlock.Serialize()
@@ -99,6 +112,7 @@ func (chain *BlockChain) CreateNewBlock(data []byte) error {
 		return err
 	}
 	//5、将序列化数据存储到文件，同时更新最新区块的标记lasthash，更新为最新区块的hash
+	db := chain.DB
 	db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BLOCKS))
 		if bucket == nil {
@@ -108,6 +122,8 @@ func (chain *BlockChain) CreateNewBlock(data []byte) error {
 		bucket.Put(newBlock.Hash[:], newBlockSerBytes)
 		//同时更新最新区块的标记lasthash
 		bucket.Put([]byte(LASTHASH), newBlock.Hash[:])
+		//更新内存中的blockchain的lastBlock
+		chain.LastBlock = newBlock
 		return nil
 	})
 
@@ -124,7 +140,11 @@ func (chain *BlockChain) CreateNewBlock(data []byte) error {
  */
 
 //获取最新区块数据
-func (chain *BlockChain) GetLastBlock() (Block, error) {
+func (chain *BlockChain) GetLastBlock() Block{
+	return chain.LastBlock
+}
+
+/*func (chain *BlockChain) GetLastBlock() (Block, error) {
 	db := chain.DB
 	var err error
 	var lastBlock Block
@@ -142,7 +162,8 @@ func (chain *BlockChain) GetLastBlock() (Block, error) {
 		return nil
 	})
 	return lastBlock, err
-}
+}*/
+
 
 //获取所有区块数据
 func (chain *BlockChain) GetAllBlocks() ([]Block,error) {

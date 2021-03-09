@@ -45,11 +45,11 @@ func main() {
 	}
 
 	//
-	lastBlock,err := blockChain.GetLastBlock()
-	if err !=nil{
+	lastBlock := blockChain.GetLastBlock()
+	/*if err !=nil{
 		fmt.Println(err.Error())
 		return
-	}
+	}*/
 	fmt.Println("最新区块：",lastBlock)
 
 	blocks,err := blockChain.GetAllBlocks()
@@ -58,7 +58,7 @@ func main() {
 		return
 	}
 	for index,block := range blocks{
-		fmt.Printf("第%d个区块:\n",index)
+		fmt.Printf("第%d个区块:",index)
 		fmt.Println(block)
 	}
 

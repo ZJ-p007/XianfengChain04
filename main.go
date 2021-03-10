@@ -44,13 +44,12 @@ func main() {
 		return
 	}
 
-	lastBlock := blockChain.GetLastBlock()
+	/*lastBlock := blockChain.GetLastBlock()
 	/*if err !=nil{
 		fmt.Println(err.Error())
 		return
 	}*/
-	fmt.Println("最新区块：",lastBlock)
-
+/*	fmt.Println("最新区块：",lastBlock)
 	blocks,err := blockChain.GetAllBlocks()
 	if err != nil{
 		fmt.Println(err.Error())
@@ -59,7 +58,7 @@ func main() {
 	for index,block := range blocks{
 		fmt.Printf("第%d个区块:",index)
 		fmt.Println(block)
-	}
+	}*/
 
 	/*
 		blockChain := chain.CreatChainWithGensis([]byte("HelloWord"))
@@ -84,4 +83,12 @@ func main() {
 	}
 	fmt.Println(string(deFirstBlock.Data))
 	*/
+
+	//迭代器测试
+	for blockChain.HasNext() {
+		block := blockChain.Next()
+		fmt.Printf("迭代到第%d个区块，区块高度:",block.Height)
+		fmt.Printf("区块hash:%v",block.Hash)
+		fmt.Printf("区块的信息:%s\n",string(block.Data))
+	}
 }

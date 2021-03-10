@@ -29,7 +29,7 @@ func (chain *BlockChain) CreatGenesis(data []byte) error {
 	/*genesis := CreateGenesis(data)
 	genSerBytes,err :=gensis.Serialize()*/
 	var err error
-	//gensis持久化到db中去
+	//genesis持久化到db中去
 	engine := chain.DB
 	engine.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BLOCKS))
@@ -46,7 +46,7 @@ func (chain *BlockChain) CreatGenesis(data []byte) error {
 			genesis := CreateGenesis(data)
 			genSerBytes, _ := genesis.Serialize()
 			//bucket已经存在
-			bucket.Put(genesis.Hash[:], genSerBytes) //把创世区块保存到boltdb中
+			bucket.Put(genesis.Hash[:], genSerBytes) //把创世区块保存到bolt.db中
 			//使用一个标志用来记录最新区块的hash，以标明当前文件中存储到了最新的哪个区块
 			bucket.Put([]byte(LASTHASH), genesis.Hash[:])
 			//把genesis赋值给chain的lastBlock

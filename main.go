@@ -2,7 +2,7 @@ package main
 
 import (
 	"XianfengChain04/chain"
-	"fmt"
+	"XianfengChain04/client"
 	"github.com/bolt"
 )
 
@@ -29,19 +29,19 @@ func main() {
 	/*block0 := chain.CreateGenesis([]byte("Blockchian"))
 	block1 := chain.NewBlock(block0.Height,block0.Hash,[]byte("Hello word"))*/
 
-	blockChain := chain.CreateChain(db)
-	//创世区块
-	err = blockChain.CreatGenesis([]byte("hello word"))
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	//新增一个区块
-	err = blockChain.CreateNewBlock([]byte("龚栏门"))
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	//blockChain := chain.CreateChain(db)
+	////创世区块
+	//err = blockChain.CreatGenesis([]byte("hello word"))
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//}
+	//
+	////新增一个区块
+	//err = blockChain.CreateNewBlock([]byte("龚栏门"))
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	return
+	//}
 
 	/*lastBlock := blockChain.GetLastBlock()
 	/*if err !=nil{
@@ -61,7 +61,7 @@ func main() {
 
 	/*
 		blockChain := chain.CreatChainWithGensis([]byte("HelloWord"))
-		blockChain.DB = db
+		blockChain.DB = client
 		blockChain.CreateNewBlock([]byte("Hello"))
 	*/
 
@@ -84,10 +84,15 @@ func main() {
 	*/
 
 	//迭代器测试
-	for blockChain.HasNext() {
+	/*for blockChain.HasNext() {
 		block := blockChain.Next()
 		fmt.Printf("迭代到第%d个区块，区块高度:", block.Height)
 		fmt.Printf("区块hash:%v", block.Hash)
 		fmt.Printf("区块的信息:%s\n", string(block.Data))
-	}
+	}*/
+	blockChain := chain.CreateChain(db)
+	cmdClient := client.CmdClient{blockChain}
+
+	cmdClient.Run()
+
 }

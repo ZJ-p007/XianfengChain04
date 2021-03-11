@@ -3,6 +3,7 @@ package chain
 import (
 	"errors"
 	"github.com/bolt"
+	"math/big"
 )
 
 const BLOCKS = "blocks"
@@ -19,15 +20,38 @@ type BlockChain struct {
 }
 
 func CreateChain(db *bolt.DB) BlockChain {
-	return BlockChain{DB: db}
+	var lastBlock Block
+	db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BLOCKS))
+		if bucket == nil {
+			bucket,_ = tx.CreateBucket([]byte(BLOCKS))
+		}
+		lastHash := bucket.Get([]byte(LASTHASH))
+		if len(lastHash) <= 0 {
+			return nil
+		}
+		lastBlockBytes := bucket.Get(lastHash)
+		lastBlock, _ = Deserialize(lastBlockBytes)
+		return nil
+	})
+	return BlockChain{
+		DB:        db,
+		LastBlock: lastBlock,
+		IteratorBlockHash:lastBlock.Hash,
+	}
 }
-
 /**
  *创建一个区块链对象，包含一个创世区块
  */
 func (chain *BlockChain) CreatGenesis(data []byte) error {
 	/*genesis := CreateGenesis(data)
 	genSerBytes,err :=gensis.Serialize()*/
+	hashBig:= new(big.Int)
+	hashBig.SetBytes(chain.LastBlock.Hash[:])
+	if hashBig.Cmp(big.NewInt(0)) == 1{//最新区块hash有值，则说明创世区块已存在
+		return nil
+	}
+
 	var err error
 	//genesis持久化到db中去
 	engine := chain.DB
@@ -52,7 +76,7 @@ func (chain *BlockChain) CreatGenesis(data []byte) error {
 			//把genesis赋值给chain的lastBlock
 			chain.LastBlock = genesis
 			chain.IteratorBlockHash = genesis.Hash
-		} else {
+		}/* else {
 			//lasthash有值，长度不为0，什么都不干
 			//从文件中读取出最新的区块，并赋值给内存中的chain中的LastBlock
 			lastHash := bucket.Get([]byte(LASTHASH))
@@ -60,7 +84,7 @@ func (chain *BlockChain) CreatGenesis(data []byte) error {
 			//把反序列化的最后最新区块赋值给chain.LastBlock
 			chain.LastBlock, err = Deserialize(lastBlockBytes)
 			chain.IteratorBlockHash = chain.LastBlock.Hash
-		}
+		}*/
 		return nil
 	})
 	/*blocks := make([]Block,0)
@@ -87,7 +111,7 @@ func (chain *BlockChain) CreateNewBlock(data []byte) error {
 	lastBlock := chain.LastBlock
 	//var lastBlock Block
 	/*
-		db.View(func(tx *bolt.Tx) error {
+		client.View(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(BLOCKS))
 			if bucket == nil { //桶为空
 				err = errors.New("区块数据库操作失败，请重试！")
@@ -147,10 +171,10 @@ func (chain *BlockChain) GetLastBlock() Block {
 }
 
 /*func (chain *BlockChain) GetLastBlock() (Block, error) {
-	db := chain.DB
+	client := chain.DB
 	var err error
 	var lastBlock Block
-	db.View(func(tx *bolt.Tx) error {
+	client.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BLOCKS))
 		if bucket == nil {
 			return errors.New("区块数据库操作失败，请重试！")
@@ -221,7 +245,7 @@ func (chain *BlockChain) HasNext() bool {
 	/**
 	 *区块0 -> 区块2 —> 区块3
 	 *最新区块3
-	 *步骤：当前区块在哪-> preHash -> db
+	 *步骤：当前区块在哪-> preHash -> client
 	 */
 	//lastBlock := chain.LastBlock
 	db := chain.DB

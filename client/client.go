@@ -16,6 +16,9 @@ type CmdClient struct {
 	Chain chain.BlockChain
 }
 
+/**
+ *
+ */
 func (cmd *CmdClient) Run() {
 
 	args := os.Args
@@ -25,46 +28,35 @@ func (cmd *CmdClient) Run() {
 		return
 	}
 
-	//command := os.Args[1]
-
 	//2、解析用户输入的第一个参数，作为功能命令进行解析
 	switch os.Args[1] {
 	case GENRATEGENSIS:
 		//fmt.Println("调用创建创世区块功能")
-		generategenesis := flag.NewFlagSet(GENRATEGENSIS, flag.ExitOnError)
-		var genesis string
-		generategenesis.StringVar(&genesis, "genesis", "", "创世区块的数据")
-		generategenesis.Parse(os.Args[2:])
-		fmt.Println("用户输入的自定义创世区块数据:", genesis)
-		blockchain := cmd.Chain
-		//1、先判断该blockchain是否已存在创世区块
-		hashBig := new(big.Int)
-		hashBig.SetBytes(blockchain.LastBlock.Hash[:])
-		if hashBig.Cmp(big.NewInt(0)) == 1 {
-			fmt.Println("创世区块已存在，不能重复生成")
-			return
-		}
-		//2、调用方法实现创世区块的操作
-		blockchain.CreatGenesis([]byte(genesis))
-		fmt.Println("创世区块已生成，并保存到文件中。")
-	case CREATEBLOCK:
+		cmd.GenerateGenesis()
+	case CREATEBLOCK: //前提是创建区块已存在
 		//fmt.Println("调用创建新区块功能")
+		cmd.CreateBlock()
+		//blockchain := cmd.Chain
 	case GETLASTBLOCK:
 		//fmt.Println("调用获取最新区块功能")
+		cmd.GetLastBlock()
 	case GETALLBLOCKS:
 		//fmt.Println("调用获取所有区块功能")
+		cmd.GetAllBlocks()
 	case HELP:
 		//fmt.Println("调用帮助说明")
 		cmd.Help()
 	default:
 		//fmt.Println("不支持该命令")
-		fmt.Println("go run main.go: Unknown subcommand.")
+		cmd.Default()
 	}
 
-	/*createBlock := flag.NewFlagSet("createblock", flag.ExitOnError)
+	/*
+	createBlock := flag.NewFlagSet("createblock", flag.ExitOnError)
 	data := createBlock.String("data", "默认值", "新区块的内容")
 	createBlock.Parse(os.Args[2:])
-	cmd.Chain.CreateNewBlock([]byte(*data))*/
+	cmd.Chain.CreateNewBlock([]byte(*data))
+	*/
 }
 
 /**
@@ -84,5 +76,81 @@ func (cmd *CmdClient) Help() {
 	fmt.Println("    help    use the command can print usage infomation")
 	fmt.Println()
 	fmt.Println("Use bee help [command] for more information about a command")
+}
 
+func (cmd *CmdClient) CreateBlock() {
+	createblock := flag.NewFlagSet(CREATEBLOCK, flag.ExitOnError)
+	//	var create string
+	data := createblock.String("data", "", "创建的新区块的自定义内容")
+
+	if len(os.Args[2:]) > 2 {
+		fmt.Println("CREATEBLOCK只支持data一个参数，请重试")
+		return
+	}
+	//args := os.Args[2:]
+	createblock.Parse(os.Args[2:])
+	//1、先判断是否已生成创世区块，如果没创世区块，提示用户先生成
+	hashBig := new(big.Int)
+	hashBig.SetBytes(cmd.Chain.LastBlock.Hash[:])
+	if hashBig.Cmp(big.NewInt(0)) == 0 { //没有创世区块
+		fmt.Println("That not a genesis block in blockchain, please use go run main.go generategenesis comand create a genesis block first")
+		return
+	}
+	//2、生成一个新区块，存到文件中
+	err := cmd.Chain.CreateNewBlock([]byte(*data))
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println("新区块创建成功,并成功保存到文件中")
+}
+
+func (cmd *CmdClient) GetLastBlock() {
+	lastBlock := cmd.Chain.LastBlock
+	//1、判断是否唯恐
+	hashBig := new(big.Int)
+	hashBig.SetBytes(lastBlock.Hash[:])
+	if hashBig.Cmp(big.NewInt(0)) == 0 { //当前没有最新区块
+		fmt.Println("当前暂五最新区块")
+		return
+	}
+	fmt.Println("获取到最新区块")
+	fmt.Printf("最新区块的高度:%d\n", lastBlock.Height)
+	fmt.Printf("最新区块的哈希:%x\n", lastBlock.Hash)
+	fmt.Printf("最新区块的数据:%s\n", lastBlock.Data)
+}
+
+func (cmd *CmdClient) GetAllBlocks() {
+	blocks, err := cmd.Chain.GetAllBlocks()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println("获取到所有区块数据")
+	for _, block := range blocks {
+		fmt.Printf("区块高度:%d,区块哈希:%x,区块数据:%s\n", block.Height, block.Hash, block.Data)
+	}
+}
+
+func (cmd *CmdClient) Default() {
+	fmt.Println("go run main.go: Unknown subcommand.")
+}
+
+func (cmd *CmdClient) GenerateGenesis() {
+	generategenesis := flag.NewFlagSet(GENRATEGENSIS, flag.ExitOnError)
+	var genesis string
+	generategenesis.StringVar(&genesis, "genesis", "", "创世区块的数据")
+	generategenesis.Parse(os.Args[2:])
+	fmt.Println("用户输入的自定义创世区块数据:", genesis)
+	blockchain := cmd.Chain
+	//1、先判断该blockchain是否已存在创世区块
+	hashBig := new(big.Int)
+	hashBig.SetBytes(blockchain.LastBlock.Hash[:])
+	if hashBig.Cmp(big.NewInt(0)) == 1 {
+		fmt.Println("创世区块已存在，不能重复生成")
+		return
+	}
+	//2、调用方法实现创世区块的操作
+	blockchain.CreatGenesis([]byte(genesis))
+	fmt.Println("创世区块已生成，并保存到文件中。")
 }

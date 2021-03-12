@@ -15,6 +15,9 @@ func main() {
 		panic(err.Error())
 	}
 	defer db.Close()
+	blockChain := chain.CreateChain(db)
+	cmdClient := client.CmdClient{blockChain}
+	cmdClient.Run()
 
 	//fmt.Println("BlockChain")
 	/*block0 := chain.Block{
@@ -90,9 +93,4 @@ func main() {
 		fmt.Printf("区块hash:%v", block.Hash)
 		fmt.Printf("区块的信息:%s\n", string(block.Data))
 	}*/
-	blockChain := chain.CreateChain(db)
-	cmdClient := client.CmdClient{blockChain}
-
-	cmdClient.Run()
-
 }

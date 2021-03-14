@@ -65,7 +65,18 @@ func CalculateHash(block BlockInterface,nonce int64) [32]byte {
 	timeByte, _ := utils.Int2Byte(block.GetTimeStamp())
 	nonceByte, _ := utils.Int2Byte(nonce)
 	prev := block.GetPreHash()
-	blockByte := bytes.Join([][]byte{heightByte, versionByte, prev[:], timeByte, nonceByte, block.GetData()}, []byte{})
+	txs := block.GetTransactions()
+	txsBytes := make([]byte,0)
+	for _,tx := range txs{
+		//struct -> []byte 序列化
+		txData,err := utils.Encode(tx)
+		if err != nil{
+			break
+		}
+		txsBytes = append(txsBytes,txData...)
+
+	}
+	blockByte := bytes.Join([][]byte{heightByte, versionByte, prev[:], txsBytes,timeByte, nonceByte, }, []byte{})
 	//1、计算区块的哈希
 	hash := sha256.Sum256(blockByte)
 	return hash

@@ -11,16 +11,11 @@ import (
 /**
  *该结构体定义了用于实现命令行参数解析的结构体
  */
-
 type CmdClient struct {
 	Chain chain.BlockChain
 }
 
-/**
- *
- */
 func (cmd *CmdClient) Run() {
-
 	args := os.Args
 	//1、处理用户没有输入任何命令和参数，打印输出说明书
 	if len(args) == 1 {
@@ -59,23 +54,23 @@ func (cmd *CmdClient) Run() {
 	*/
 }
 
-/**
- *该方法用于打印输出项目的使用和说明信息，相当于项目的帮助文档和说明书
- */
-func (cmd *CmdClient) Help() {
-	fmt.Println("------Welcome to XianfengChain04 Project------")
-	fmt.Println("XianfengChain04 is a custom blockchain project, the projects plan to a very simple public chain")
-	fmt.Println()
-	fmt.Println("USAGE")
-	fmt.Println("go run main.go command [arguments]")
-	fmt.Println("AVAILABLE COMMANDS")
-	fmt.Println("    generategenesis    use the command can create a genesis block and save to the boltdb file. use genesis argument to set")
-	fmt.Println("    createblock    this command used to create a new block, that can specified an argument ")
-	fmt.Println("    getlastblock    get the lasted block data")
-	fmt.Println("    getallblocks    return a blocks data to user.")
-	fmt.Println("    help    use the command can print usage infomation")
-	fmt.Println()
-	fmt.Println("Use bee help [command] for more information about a command")
+func (cmd *CmdClient) GenerateGenesis() {
+	generategenesis := flag.NewFlagSet(GENRATEGENSIS, flag.ExitOnError)
+	var genesis string
+	generategenesis.StringVar(&genesis, "genesis", "", "创世区块的数据")
+	generategenesis.Parse(os.Args[2:])
+	fmt.Println("用户输入的自定义创世区块数据:", genesis)
+	blockchain := cmd.Chain
+	//1、先判断该blockchain是否已存在创世区块
+	hashBig := new(big.Int)
+	hashBig.SetBytes(blockchain.LastBlock.Hash[:])
+	if hashBig.Cmp(big.NewInt(0)) == 1 {
+		fmt.Println("创世区块已存在，不能重复生成")
+		return
+	}
+	//2、调用方法实现创世区块的操作
+	blockchain.CreatGenesis([]byte(genesis))
+	fmt.Println("创世区块已生成，并保存到文件中。")
 }
 
 func (cmd *CmdClient) CreateBlock() {
@@ -117,7 +112,10 @@ func (cmd *CmdClient) GetLastBlock() {
 	fmt.Println("获取到最新区块")
 	fmt.Printf("最新区块的高度:%d\n", lastBlock.Height)
 	fmt.Printf("最新区块的哈希:%x\n", lastBlock.Hash)
-	fmt.Printf("最新区块的数据:%s\n", lastBlock.Data)
+	for _,tx := range lastBlock.Transactions{
+		fmt.Printf("区块交易:%d,交易：%v\n", lastBlock.Transactions,tx)
+	}
+
 }
 
 func (cmd *CmdClient) GetAllBlocks() {
@@ -128,7 +126,7 @@ func (cmd *CmdClient) GetAllBlocks() {
 	}
 	fmt.Println("获取到所有区块数据")
 	for _, block := range blocks {
-		fmt.Printf("区块高度:%d,区块哈希:%x,区块数据:%s\n", block.Height, block.Hash, block.Data)
+		fmt.Printf("区块高度:%d,区块哈希:%x,区块数据:%s\n", block.Height, block.Hash, block.Transactions)
 	}
 }
 
@@ -136,21 +134,21 @@ func (cmd *CmdClient) Default() {
 	fmt.Println("go run main.go: Unknown subcommand.")
 }
 
-func (cmd *CmdClient) GenerateGenesis() {
-	generategenesis := flag.NewFlagSet(GENRATEGENSIS, flag.ExitOnError)
-	var genesis string
-	generategenesis.StringVar(&genesis, "genesis", "", "创世区块的数据")
-	generategenesis.Parse(os.Args[2:])
-	fmt.Println("用户输入的自定义创世区块数据:", genesis)
-	blockchain := cmd.Chain
-	//1、先判断该blockchain是否已存在创世区块
-	hashBig := new(big.Int)
-	hashBig.SetBytes(blockchain.LastBlock.Hash[:])
-	if hashBig.Cmp(big.NewInt(0)) == 1 {
-		fmt.Println("创世区块已存在，不能重复生成")
-		return
-	}
-	//2、调用方法实现创世区块的操作
-	blockchain.CreatGenesis([]byte(genesis))
-	fmt.Println("创世区块已生成，并保存到文件中。")
+/**
+ *该方法用于打印输出项目的使用和说明信息，相当于项目的帮助文档和说明书
+ */
+func (cmd *CmdClient) Help() {
+	fmt.Println("------Welcome to XianfengChain04 Project------")
+	fmt.Println("XianfengChain04 is a custom blockchain project, the projects plan to a very simple public chain")
+	fmt.Println()
+	fmt.Println("USAGE")
+	fmt.Println("go run main.go command [arguments]")
+	fmt.Println("AVAILABLE COMMANDS")
+	fmt.Println("    generategenesis    use the command can create a genesis block and save to the boltdb file. use genesis argument to set")
+	fmt.Println("    createblock    this command used to create a new block, that can specified an argument ")
+	fmt.Println("    getlastblock    get the lasted block data")
+	fmt.Println("    getallblocks    return a blocks data to user.")
+	fmt.Println("    help    use the command can print usage infomation")
+	fmt.Println()
+	fmt.Println("Use bee help [command] for more information about a command")
 }

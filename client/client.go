@@ -2,6 +2,7 @@ package client
 
 import (
 	"XianfengChain04/chain"
+	"XianfengChain04/transaction"
 	"flag"
 	"fmt"
 	"math/big"
@@ -56,10 +57,10 @@ func (cmd *CmdClient) Run() {
 
 func (cmd *CmdClient) GenerateGenesis() {
 	generategenesis := flag.NewFlagSet(GENRATEGENSIS, flag.ExitOnError)
-	var genesis string
-	generategenesis.StringVar(&genesis, "genesis", "", "创世区块的数据")
+	var addr string
+	generategenesis.StringVar(&addr, "address", "", "用户指定的矿工的地址")
 	generategenesis.Parse(os.Args[2:])
-	fmt.Println("用户输入的自定义创世区块数据:", genesis)
+	fmt.Println("用户输入的自定义创世区块数据:", addr)
 	blockchain := cmd.Chain
 	//1、先判断该blockchain是否已存在创世区块
 	hashBig := new(big.Int)
@@ -68,16 +69,23 @@ func (cmd *CmdClient) GenerateGenesis() {
 		fmt.Println("创世区块已存在，不能重复生成")
 		return
 	}
+
 	//2、调用方法实现创世区块的操作
-	blockchain.CreatGenesis([]byte(genesis))
+	coinbase,err := transaction.CreateCoinBase(addr)
+	if err !=nil{
+		fmt.Println("创建coinbase交易遇到错误")
+		return
+	}
+	blockchain.CreatGenesis([]transaction.Transaction{*coinbase})
 	fmt.Println("创世区块已生成，并保存到文件中。")
 }
 
 func (cmd *CmdClient) CreateBlock() {
 	createblock := flag.NewFlagSet(CREATEBLOCK, flag.ExitOnError)
 	//	var create string
-	data := createblock.String("data", "", "创建的新区块的自定义内容")
-
+	from := createblock.String("from", "", "交易发起人地址")
+	to := createblock.String("to","","交易接收者的地址")
+	amount := createblock.Float64("amount",0,"转账数量")
 	if len(os.Args[2:]) > 2 {
 		fmt.Println("CREATEBLOCK只支持data一个参数，请重试")
 		return
@@ -92,7 +100,12 @@ func (cmd *CmdClient) CreateBlock() {
 		return
 	}
 	//2、生成一个新区块，存到文件中
-	err := cmd.Chain.CreateNewBlock([]byte(*data))
+	newTx ,err:= transaction.CreateNewTransaction(*from,*to,*amount)
+	if err != nil{
+		fmt.Println("抱歉，创建交易发生错误，请重试！")
+		return
+	}
+	err = cmd.Chain.CreateNewBlock([]transaction.Transaction{*newTx})
 	if err != nil {
 		fmt.Println(err.Error())
 		return

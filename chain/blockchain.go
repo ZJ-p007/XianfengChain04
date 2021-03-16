@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"XianfengChain04/transaction"
 	"errors"
 	"github.com/bolt"
 	"math/big"
@@ -43,7 +44,7 @@ func CreateChain(db *bolt.DB) BlockChain {
 /**
  *创建一个区块链对象，包含一个创世区块
  */
-func (chain *BlockChain) CreatGenesis(data []byte) error {
+func (chain *BlockChain) CreatGenesis(txs []transaction.Transaction) error {
 	/*genesis := CreateGenesis(data)
 	genSerBytes,err :=gensis.Serialize()*/
 	hashBig:= new(big.Int)
@@ -67,7 +68,7 @@ func (chain *BlockChain) CreatGenesis(data []byte) error {
 		//先查看
 		lastHash := bucket.Get([]byte(LASTHASH))
 		if len(lastHash) == 0 {
-			genesis := CreateGenesis(data)
+			genesis := CreateGenesis(txs)
 			genSerBytes, _ := genesis.Serialize()
 			//bucket已经存在
 			bucket.Put(genesis.Hash[:], genSerBytes) //把创世区块保存到bolt.db中
@@ -96,7 +97,7 @@ func (chain *BlockChain) CreatGenesis(data []byte) error {
 /**
  * 生成一个新区快
  */
-func (chain *BlockChain) CreateNewBlock(data []byte) error {
+func (chain *BlockChain) CreateNewBlock(txs []transaction.Transaction) error {
 	/**
 	 *目的：生成一个新区块，并存到bolt.DB中（持久化）
 	 *手段(步骤)：
@@ -128,10 +129,9 @@ func (chain *BlockChain) CreateNewBlock(data []byte) error {
 		})
 	*/
 	//lastBlock := chain.LastBlock
-
 	//3、
 	var err error
-	newBlock := NewBlock(lastBlock.Height, lastBlock.Hash, data)
+	newBlock := NewBlock(lastBlock.Height, lastBlock.Hash, txs)
 	//4、将最新区块序列化，得到序列化数据
 	newBlockSerBytes, err := newBlock.Serialize()
 	if err != nil {

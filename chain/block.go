@@ -86,16 +86,16 @@ func Deserialize(data []byte) (Block, error) {
 /**
  *生成创世区块的函数
  */
-func CreateGenesis(data []byte) Block {
+func CreateGenesis(txs []transaction.Transaction) Block {
 	fmt.Println("创建创世区块数据并未存储到交易中。。。")
-	tx := transaction.Transaction{}
+	//tx := transaction.Transaction{}
 	genesis := Block{
 		Height:   0,
 		Version:  VERSION,
 		PrevHash: [32]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		/*Hash:      [32]byte{},*/
 		TimeStamp: time.Now().Unix(),
-		Transactions:      []transaction.Transaction{tx},
+		Transactions:      txs,
 	}
 
 	//调用Pow，实现hash计算,寻找nonce值
@@ -113,8 +113,8 @@ func CreateGenesis(data []byte) Block {
 /**
  *生成新区块的功能函数
  */
-func NewBlock(height int64, prev [32]byte, data []byte) Block {
-	tx := transaction.Transaction{}
+func NewBlock(height int64, prev [32]byte, txs []transaction.Transaction) Block {
+	//tx := transaction.Transaction{}
 	newBlock := Block{
 		Height:   height + 1,
 		Version:  VERSION,
@@ -122,7 +122,7 @@ func NewBlock(height int64, prev [32]byte, data []byte) Block {
 		/*Hash:      [32]byte{},*/
 		TimeStamp: time.Now().Unix(),
 		//Nonce:     0,
-		Transactions: []transaction.Transaction{tx},
+		Transactions: txs,
 	}
 
 	proof := consensus.NewPow(newBlock)
@@ -133,6 +133,5 @@ func NewBlock(height int64, prev [32]byte, data []byte) Block {
 
 	//设置区块哈希
 	//newBlock.CalculateBlockHash()
-
 	return newBlock
 }

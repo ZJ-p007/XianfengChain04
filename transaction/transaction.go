@@ -74,7 +74,6 @@ func CreateNewTransaction(from string, to string, amount float64) (*Transaction,
 	//b、从已有的区块账本数据中找到所有跟from有关的交易输入(所有from花的钱 )
 	//c、从所有跟from有关的建议输出记录中提出已经花费的，剩下的就是可花费的
 
-
 	//2、构建outputs
 	outputs := make([]TxOutput, 0) //用于存放交易输出的容器
 

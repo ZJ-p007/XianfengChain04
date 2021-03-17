@@ -2,7 +2,7 @@ package client
 
 const (
 	GENRATEGENSIS = "generategenesis"
-	CREATEBLOCK = "createblock"
+	SENDTRANSACTION = "sendtransaction"
 	GETLASTBLOCK = "getlastblock"
 	GETALLBLOCKS = "getallblocks"
 	HELP = "help"

@@ -29,9 +29,9 @@ func (cmd *CmdClient) Run() {
 	case GENRATEGENSIS:
 		//fmt.Println("调用创建创世区块功能")
 		cmd.GenerateGenesis()
-	case CREATEBLOCK: //前提是创建区块已存在
+	case SENDTRANSACTION: //前提是创建区块已存在
 		//fmt.Println("调用创建新区块功能")
-		cmd.CreateBlock()
+		cmd.SendTransaction()
 		//blockchain := cmd.Chain
 	case GETLASTBLOCK:
 		//fmt.Println("调用获取最新区块功能")
@@ -48,12 +48,16 @@ func (cmd *CmdClient) Run() {
 	}
 
 	/*
-	createBlock := flag.NewFlagSet("createblock", flag.ExitOnError)
-	data := createBlock.String("data", "默认值", "新区块的内容")
-	createBlock.Parse(os.Args[2:])
-	cmd.Chain.CreateNewBlock([]byte(*data))
+		createBlock := flag.NewFlagSet("createblock", flag.ExitOnError)
+		data := createBlock.String("data", "默认值", "新区块的内容")
+		createBlock.Parse(os.Args[2:])
+		cmd.Chain.CreateNewBlock([]byte(*data))
 	*/
 }
+
+/**
+ *用户发起交易
+ */
 
 func (cmd *CmdClient) GenerateGenesis() {
 	generategenesis := flag.NewFlagSet(GENRATEGENSIS, flag.ExitOnError)
@@ -71,8 +75,8 @@ func (cmd *CmdClient) GenerateGenesis() {
 	}
 
 	//2、调用方法实现创世区块的操作
-	coinbase,err := transaction.CreateCoinBase(addr)
-	if err !=nil{
+	coinbase, err := transaction.CreateCoinBase(addr)
+	if err != nil {
 		fmt.Println("创建coinbase交易遇到错误")
 		return
 	}
@@ -80,16 +84,18 @@ func (cmd *CmdClient) GenerateGenesis() {
 	fmt.Println("创世区块已生成，并保存到文件中。")
 }
 
-func (cmd *CmdClient) CreateBlock() {
-	createblock := flag.NewFlagSet(CREATEBLOCK, flag.ExitOnError)
+func (cmd *CmdClient) SendTransaction() {
+	createblock := flag.NewFlagSet(SENDTRANSACTION, flag.ExitOnError)
 	//	var create string
 	from := createblock.String("from", "", "交易发起人地址")
-	to := createblock.String("to","","交易接收者的地址")
-	amount := createblock.Float64("amount",0,"转账数量")
-	if len(os.Args[2:]) > 2 {
-		fmt.Println("CREATEBLOCK只支持data一个参数，请重试")
+	to := createblock.String("to", "", "交易接收者的地址")
+	amount := createblock.Float64("amount", 0, "转账数量")
+
+	if len(os.Args[2:]) > 6 {
+		fmt.Println("SENDTRANSACTION只支持三个参数和参数值，请重试")
 		return
 	}
+
 	//args := os.Args[2:]
 	createblock.Parse(os.Args[2:])
 	//1、先判断是否已生成创世区块，如果没创世区块，提示用户先生成
@@ -99,20 +105,12 @@ func (cmd *CmdClient) CreateBlock() {
 		fmt.Println("That not a genesis block in blockchain, please use go run main.go generategenesis comand create a genesis block first")
 		return
 	}
-	//2、生成一个新区块，存到文件中
-	newTx ,err:= transaction.CreateNewTransaction(*from,*to,*amount)
+    err := cmd.Chain.SendTransaction(*from, *to, * amount)
 	if err != nil{
-		fmt.Println("抱歉，创建交易发生错误，请重试！")
-		return
+		fmt.Println("抱歉，发送交易出现错误",err.Error())
 	}
-	err = cmd.Chain.CreateNewBlock([]transaction.Transaction{*newTx})
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	fmt.Println("新区块创建成功,并成功保存到文件中")
+	fmt.Println("交易发送成功")
 }
-
 func (cmd *CmdClient) GetLastBlock() {
 	lastBlock := cmd.Chain.LastBlock
 	//1、判断是否唯恐
@@ -125,8 +123,8 @@ func (cmd *CmdClient) GetLastBlock() {
 	fmt.Println("获取到最新区块")
 	fmt.Printf("最新区块的高度:%d\n", lastBlock.Height)
 	fmt.Printf("最新区块的哈希:%x\n", lastBlock.Hash)
-	for _,tx := range lastBlock.Transactions{
-		fmt.Printf("区块交易:%d,交易：%v\n", lastBlock.Transactions,tx)
+	for _, tx := range lastBlock.Transactions {
+		fmt.Printf("区块交易:%d,交易：%v\n", lastBlock.Transactions, tx)
 	}
 
 }

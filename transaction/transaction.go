@@ -74,6 +74,7 @@ func CreateNewTransaction(utxos []UTXO, from string, to string, amount float64) 
 			Vout:     utxo.Vout,
 			SciptSig: []byte(from),
 		}
+		inputAmount += utxo.Value
 		//把构建好的input存入到
 		inputs = append(inputs, input)
 	}
@@ -88,7 +89,6 @@ func CreateNewTransaction(utxos []UTXO, from string, to string, amount float64) 
 
 	//2、构建outputs
 	outputs := make([]TxOutput, 0) //用于存放交易输出的容器
-
 	//构建转账接收者的交易输出
 	output0 := TxOutput{
 		Value:     amount,
@@ -120,6 +120,5 @@ func CreateNewTransaction(utxos []UTXO, from string, to string, amount float64) 
 		return nil, err
 	}
 	//5、将构建的transaction的实例进行返回
-
 	return &newTransaction, err
 }

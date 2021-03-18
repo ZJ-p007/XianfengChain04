@@ -426,7 +426,10 @@ func (chain *BlockChain) GetBalane(addr string) float64 {
 func (chain *BlockChain) GetTUXOsWithBalance(addr string) ([]transaction.UTXO, float64) {
 	utxos := chain.SearchUTXOS(addr)
 	var totalBalance float64
+	//fmt.Println("找到了可花费的：",utxos)
 	for _, utxo := range utxos {
+		//fmt.Print("可花费余额:",index,utxo)
+		//fmt.Println(utxo)
 		totalBalance += utxo.Value
 	}
 	return utxos, totalBalance

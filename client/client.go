@@ -136,7 +136,17 @@ func (cmd *CmdClient) GetAllBlocks() {
 	}
 	fmt.Println("获取到所有区块数据")
 	for _, block := range blocks {
-		fmt.Printf("区块高度:%d,区块哈希:%x,区块数据:%s\n", block.Height, block.Hash, block.Transactions)
+		fmt.Printf("区块高度:%d,区块哈希:%x", block.Height, block.Hash)
+		fmt.Print("区块中的交易信息:\n")
+		/*for index,tx := range  block.Transactions{
+			fmt.Printf("    第%d笔交易，交易hash:%x",index,tx.TxHash)
+			for inputIndex,_ := range tx.Inputs{
+				fmt.Printf("     第%d笔交易输入",inputIndex)
+			}
+			for outputIndex,output := range tx.Outputs{
+				fmt.Printf("        第%d笔交易，面额为:%f\n",outputIndex,output.Value)
+			}
+			fmt.Println()}*/
 	}
 }
 
@@ -161,7 +171,6 @@ func (cmd *CmdClient) GetBalance() {
 	balance := blockChain.GetBalane(addr)
 	fmt.Printf("地址%s的余额是:%f\n",addr,balance)
 }
-
 
 func (cmd *CmdClient) Default() {
 	fmt.Println("go run main.go: Unknown subcommand.")

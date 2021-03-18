@@ -2,7 +2,6 @@ package client
 
 import (
 	"XianfengChain04/chain"
-	"XianfengChain04/transaction"
 	"flag"
 	"fmt"
 	"math/big"
@@ -39,6 +38,8 @@ func (cmd *CmdClient) Run() {
 	case GETALLBLOCKS:
 		//fmt.Println("调用获取所有区块功能")
 		cmd.GetAllBlocks()
+	case GETBALANCE:
+		cmd.GetBalance()
 	case HELP:
 		//fmt.Println("调用帮助说明")
 		cmd.Help()
@@ -64,7 +65,7 @@ func (cmd *CmdClient) GenerateGenesis() {
 	var addr string
 	generategenesis.StringVar(&addr, "address", "", "用户指定的矿工的地址")
 	generategenesis.Parse(os.Args[2:])
-	fmt.Println("用户输入的自定义创世区块数据:", addr)
+	//fmt.Println("用户输入的自定义创世区块数据:", addr)
 	blockchain := cmd.Chain
 	//1、先判断该blockchain是否已存在创世区块
 	hashBig := new(big.Int)
@@ -75,13 +76,11 @@ func (cmd *CmdClient) GenerateGenesis() {
 	}
 
 	//2、调用方法实现创世区块的操作
-	coinbase, err := transaction.CreateCoinBase(addr)
-	if err != nil {
-		fmt.Println("创建coinbase交易遇到错误")
-		return
+	err := blockchain.CreateCoinBase(addr)
+	if err != nil{
+		fmt.Println("抱歉创建coinbase交易遇到错误",err.Error())
 	}
-	blockchain.CreatGenesis([]transaction.Transaction{*coinbase})
-	fmt.Println("创世区块已生成，并保存到文件中。")
+	fmt.Println("恭喜!生成一笔COINBASE交易，奖励已到账")
 }
 
 func (cmd *CmdClient) SendTransaction() {
@@ -141,6 +140,29 @@ func (cmd *CmdClient) GetAllBlocks() {
 	}
 }
 
+/**
+  *获取地址余额
+ */
+func (cmd *CmdClient) GetBalance() {
+	getbalance := flag.NewFlagSet(GETBALANCE,flag.ExitOnError)
+	var addr string
+	getbalance.StringVar(&addr,"address","","用户的地址")
+	getbalance.Parse(os.Args[2:])
+
+	blockChain := cmd.Chain
+	//1、先判断是否有创世区块
+	hashBig := new(big.Int)
+	hashBig.SetBytes(blockChain.LastBlock.Hash[:])
+	if hashBig.Cmp(big.NewInt(0)) == 0{
+		fmt.Println("抱歉该网络链不存在，不能查询")
+		return
+	}
+	//2、调用余额查询
+	balance := blockChain.GetBalane(addr)
+	fmt.Printf("地址%s的余额是:%f\n",addr,balance)
+}
+
+
 func (cmd *CmdClient) Default() {
 	fmt.Println("go run main.go: Unknown subcommand.")
 }
@@ -156,8 +178,9 @@ func (cmd *CmdClient) Help() {
 	fmt.Println("go run main.go command [arguments]")
 	fmt.Println("AVAILABLE COMMANDS")
 	fmt.Println("    generategenesis    use the command can create a genesis block and save to the boltdb file. use genesis argument to set")
-	fmt.Println("    createblock    this command used to create a new block, that can specified an argument ")
+	fmt.Println("    sendtransaction    this command used to create a new transaction, that can specified an argument ")
 	fmt.Println("    getlastblock    get the lasted block data")
+	fmt.Println("    getbalance    this is a command that can the balance of specified address")
 	fmt.Println("    getallblocks    return a blocks data to user.")
 	fmt.Println("    help    use the command can print usage infomation")
 	fmt.Println()

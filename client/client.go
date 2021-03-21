@@ -2,6 +2,7 @@ package client
 
 import (
 	"XianfengChain04/chain"
+	"XianfengChain04/utils"
 	"flag"
 	"fmt"
 	"math/big"
@@ -62,6 +63,7 @@ func (cmd *CmdClient) Run() {
 
 func (cmd *CmdClient) GenerateGenesis() {
 	generategenesis := flag.NewFlagSet(GENRATEGENSIS, flag.ExitOnError)
+	//解析参数
 	var addr string
 	generategenesis.StringVar(&addr, "address", "", "用户指定的矿工的地址")
 	generategenesis.Parse(os.Args[2:])
@@ -77,55 +79,85 @@ func (cmd *CmdClient) GenerateGenesis() {
 
 	//2、调用方法实现创世区块的操作
 	err := blockchain.CreateCoinBase(addr)
-	if err != nil{
-		fmt.Println("抱歉创建coinbase交易遇到错误",err.Error())
+	if err != nil {
+		fmt.Println("抱歉创建coinbase交易遇到错误", err.Error())
 	}
 	fmt.Println("恭喜!生成一笔COINBASE交易，奖励已到账")
 }
 
 func (cmd *CmdClient) SendTransaction() {
-	createblock := flag.NewFlagSet(SENDTRANSACTION, flag.ExitOnError)
-	//	var create string
-	from := createblock.String("from", "", "交易发起人地址")
-	to := createblock.String("to", "", "交易接收者的地址")
-	amount := createblock.Float64("amount", 0, "转账数量")
+	//-data
+	createBlock := flag.NewFlagSet(SENDTRANSACTION, flag.ExitOnError)
+	from := createBlock.String("from", "", "交易发起人地址")
+	to := createBlock.String("to", "", "交易接收者地址")
+	amount := createBlock.String("amount", "", "转账的数量")
 
 	if len(os.Args[2:]) > 6 {
-		fmt.Println("SENDTRANSACTION只支持三个参数和参数值，请重试")
+		fmt.Println("sendTransaction命令只支持三个参数和参数值，请重试")
+		return
+	}
+	createBlock.Parse(os.Args[2:])
+
+	//from，to，amount三个参数是字符串类型，同时需要满足符合JSON格式
+	fromSlice, err := utils.JSONArray2String(*from)
+	if err != nil {
+		fmt.Println("抱歉，参数格式不正确，请检查后重试！")
+		return
+	}
+	toSlice, err := utils.JSONArray2String(*to)
+	if err != nil {
+		fmt.Println("抱歉，参数格式不正确，请检查后重试！")
+		return
+	}
+	amountSlice, err := utils.JSONArray2Float(*amount)
+	if err != nil {
+		fmt.Println("抱歉，参数格式不正确，请检查后重试！")
 		return
 	}
 
-	//args := os.Args[2:]
-	createblock.Parse(os.Args[2:])
-	//1、先判断是否已生成创世区块，如果没创世区块，提示用户先生成
+	//先看看参数个数是否一致
+	fromLen := len(fromSlice)
+	toLen := len(toSlice)
+	amountLen := len(amountSlice)
+	if fromLen != toLen || fromLen != amountLen || toLen != amountLen {
+		fmt.Println("参数个数不一致，请检查参数后重试")
+		return
+	}
+
+	//1、先判断是否已生成创世区块，如果没有创世区块，提示用户先生成
+	//[0000000]
 	hashBig := new(big.Int)
 	hashBig.SetBytes(cmd.Chain.LastBlock.Hash[:])
 	if hashBig.Cmp(big.NewInt(0)) == 0 { //没有创世区块
-		fmt.Println("That not a genesis block in blockchain, please use go run main.go generategenesis comand create a genesis block first")
+		fmt.Println("That not a gensis block in blockchain，please use go run main.go generategensis command to create a gensis block first.")
 		return
 	}
-    err := cmd.Chain.SendTransaction(*from, *to, * amount)
-	if err != nil{
-		fmt.Println("抱歉，发送交易出现错误",err.Error())
+
+	err = cmd.Chain.SendTransaction(fromSlice, toSlice, amountSlice)
+	if err != nil {
+		fmt.Println("抱歉，发送交易出现错误：", err.Error())
+		return
 	}
 	fmt.Println("交易发送成功")
 }
+
+
 func (cmd *CmdClient) GetLastBlock() {
-	lastBlock := cmd.Chain.LastBlock
-	//1、判断是否唯恐
+	lastBlock := cmd.Chain.GetLastBlock()
+	//1、判断是否为空
 	hashBig := new(big.Int)
 	hashBig.SetBytes(lastBlock.Hash[:])
-	if hashBig.Cmp(big.NewInt(0)) == 0 { //当前没有最新区块
-		fmt.Println("当前暂五最新区块")
+	if hashBig.Cmp(big.NewInt(0)) == 0 { //没有最新区块
+		fmt.Println("抱歉，当前暂无最新区块.")
 		return
 	}
-	fmt.Println("获取到最新区块")
-	fmt.Printf("最新区块的高度:%d\n", lastBlock.Height)
-	fmt.Printf("最新区块的哈希:%x\n", lastBlock.Hash)
-	for _, tx := range lastBlock.Transactions {
-		fmt.Printf("区块交易:%d,交易：%v\n", lastBlock.Transactions, tx)
-	}
+	fmt.Println("恭喜，获取到最新区块数据")
+	fmt.Printf("最新区块高度:%d\n", lastBlock.Height)
+	fmt.Printf("最新区块哈希:%x\n", lastBlock.Hash)
 
+	for index, tx := range lastBlock.Transactions {
+		fmt.Printf("区块交易%d,交易:%v\n", index, tx)
+	}
 }
 
 func (cmd *CmdClient) GetAllBlocks() {
@@ -134,46 +166,49 @@ func (cmd *CmdClient) GetAllBlocks() {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Println("获取到所有区块数据")
+	fmt.Println("恭喜，查询到所有区块数据")
 	for _, block := range blocks {
-		fmt.Printf("区块高度:%d,区块哈希:%x", block.Height, block.Hash)
-		fmt.Print("区块中的交易信息:\n")
-		/*for index,tx := range  block.Transactions{
-			fmt.Printf("    第%d笔交易，交易hash:%x",index,tx.TxHash)
-			for inputIndex,_ := range tx.Inputs{
-				fmt.Printf("     第%d笔交易输入",inputIndex)
+		fmt.Printf("区块高度:%d,区块哈希:%x\n", block.Height, block.Hash)
+		fmt.Print("区块中的交易信息：\n")
+		for index, tx := range block.Transactions {
+			fmt.Printf("   第%d笔交易,交易hash:%x\n", index, tx.TxHash)
+			for inputIndex, _ := range tx.Inputs {
+				fmt.Printf("       第%d笔交易输入\n", inputIndex)
 			}
-			for outputIndex,output := range tx.Outputs{
-				fmt.Printf("        第%d笔交易，面额为:%f\n",outputIndex,output.Value)
+			for outputIndex, output := range tx.Outputs {
+				fmt.Printf("       第%d笔交易输出,面额为：%f\n", outputIndex, output.Value)
 			}
-			fmt.Println()}*/
+		}
+		fmt.Println()
 	}
 }
 
 /**
-  *获取地址余额
+ *获取地址余额
  */
 func (cmd *CmdClient) GetBalance() {
 	getbalance := flag.NewFlagSet(GETBALANCE,flag.ExitOnError)
 	var addr string
-	getbalance.StringVar(&addr,"address","","用户的地址")
+	getbalance.StringVar(&addr,"address","","用户地址")
 	getbalance.Parse(os.Args[2:])
 
 	blockChain := cmd.Chain
+
 	//1、先判断是否有创世区块
 	hashBig := new(big.Int)
 	hashBig.SetBytes(blockChain.LastBlock.Hash[:])
 	if hashBig.Cmp(big.NewInt(0)) == 0{
-		fmt.Println("抱歉该网络链不存在，不能查询")
+		fmt.Println("抱歉，该链不存在，无法查询")
 		return
 	}
-	//2、调用余额查询
+
 	balance := blockChain.GetBalane(addr)
-	fmt.Printf("地址%s的余额是:%f\n",addr,balance)
+	fmt.Printf("地址%s的余额：%f\n",addr,balance)
 }
 
 func (cmd *CmdClient) Default() {
-	fmt.Println("go run main.go: Unknown subcommand.")
+	fmt.Println("go run main.go：Unknown subcommand.")
+	fmt.Println("Run 'go run main.go help' for usage.")
 }
 
 /**

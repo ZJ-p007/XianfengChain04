@@ -3,8 +3,6 @@ package chain
 import (
 	"XianfengChain04/transaction"
 	"errors"
-	"fmt"
-
 	"github.com/bolt"
 	"math/big"
 )
@@ -113,7 +111,7 @@ func (chain *BlockChain) CreatGenesis(txs []transaction.Transaction) error {
 }
 
 /**
- * 生成一个新区快
+ * 生成一个新区块
  */
 func (chain *BlockChain) CreateNewBlock(txs []transaction.Transaction) error {
 	/**
@@ -126,8 +124,6 @@ func (chain *BlockChain) CreateNewBlock(txs []transaction.Transaction) error {
 	     e、将序列化数据存储到文件，同时更新最新区块的标记lasthash，更新为最新区块的hash
 	*/
 
-	//1、从文件中查到当前存储的最新区块数据
-	lastBlock := chain.LastBlock
 	//var lastBlock Block
 	/*
 		client.View(func(tx *bolt.Tx) error {
@@ -147,6 +143,8 @@ func (chain *BlockChain) CreateNewBlock(txs []transaction.Transaction) error {
 		})
 	*/
 	//lastBlock := chain.LastBlock
+	//1、从文件中查到当前存储的最新区块数据
+	lastBlock := chain.LastBlock
 	//3、
 	var err error
 	newBlock := NewBlock(lastBlock.Height, lastBlock.Hash, txs)
@@ -316,7 +314,7 @@ func (chain *BlockChain) Next() Block {
 /**
  *该方法用于查询出指定地址的UTXO集合并返回
  */
-func (chain *BlockChain) SearchUTXOS(addr string) []transaction.UTXO {
+func (chain *BlockChain) SearchUTXOS(addr string) ([]transaction.UTXO) {
 	//花费记录的容器
 	spend := make([]transaction.TxInput, 0)
 	//收入记录的容器
@@ -372,40 +370,60 @@ func (chain *BlockChain) SearchUTXOS(addr string) []transaction.UTXO {
 /**
  *定义区块链的发送交易的功能
  */
-func (chain *BlockChain) SendTransaction(from string, to string, amount float64) error {
-	//1、先把form的可花费的utxos找出来
-	/*utxos := chain.SearchUTXOS(from)
-
-	//1、先判断当前所有的utxo的可花费的总额是否比转账数额要大
-	var totalBlance float64
-	var utxoNum int
-	for index, utxo := range utxos {
-		totalBlance += utxo.Value
-		if totalBlance >= amount{
-			utxoNum = index
-		}*/
-	utxos, totalBalance := chain.GetTUXOsWithBalance(from)
-	if totalBalance < amount {
-		return errors.New("余额不足！！！")
-	}
-	totalBalance = 0
-	var utxoNum int
-	for index, utxo := range utxos {
-		totalBalance += utxo.Value
-		if totalBalance > amount {
-			utxoNum = index
-			break
+func (chain *BlockChain) SendTransaction(froms []string, tos []string, amounts []float64) error {
+	/*newTxs := make([]transaction.Transaction,0)
+	for from_index, from := range froms {
+		//1、先把from的可花费的utxo找出来
+		utxos, totalBalance := chain.GetTUXOsWithBalance(from)
+		if totalBalance < amounts[from_index] {
+			return errors.New("余额不足")
 		}
+		totalBalance = 0
+		var utxoNum int
+		for index, utxo := range utxos {
+			totalBalance += utxo.Value
+			if totalBalance > amounts[from_index] {
+				utxoNum = index
+				break
+			}
+		}
+		//2、可花费的钱总额比要花费的钱数额大，才创建交易
+		newTx, err := transaction.CreateNewTransaction(utxos[0:utxoNum+1], from, tos[from_index], amounts[from_index])
+		if err != nil {
+			return err
+		}
+		newTxs = append(newTxs,*newTx)
 	}
-
-	//2、可花费的钱总额比要花费的钱数额大，才创建交易
-	newTx, err := transaction.CreateNewTransaction(utxos[0:utxoNum+1], from, to, amount)
+	err := chain.CreateNewBlock(newTxs)
 	if err != nil {
+		//fmt.Println(err.Error())
 		return err
 	}
-	err = chain.CreateNewBlock([]transaction.Transaction{*newTx})
-	if err != nil {
-		fmt.Println(err.Error())
+	return nil*/
+	newTxs := make([]transaction.Transaction,0)
+
+	for from_index, from := range froms {
+		utxos,totalbalance := chain.GetTUXOsWithBalance(from)
+		if totalbalance < amounts[from_index] {
+			return errors.New("余额不足")
+		}
+		totalbalance = 0
+		var utxoNum int
+		for index, utxo := range utxos {
+			totalbalance += utxo.Value
+			if totalbalance > amounts[from_index]{
+				utxoNum = index
+				break
+			}
+		}
+		newTx,err := transaction.CreateNewTransaction(utxos[0:utxoNum + 1],from,tos[from_index],amounts[from_index])
+		if err != nil{
+			return err
+		}
+		newTxs = append(newTxs,*newTx)
+	}
+	err := chain.CreateNewBlock(newTxs)
+	if err != nil{
 		return err
 	}
 	return nil

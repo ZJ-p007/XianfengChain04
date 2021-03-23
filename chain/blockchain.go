@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"XianfengChain04/chaincrypto"
 	"XianfengChain04/transaction"
 	"errors"
 	"github.com/bolt"
@@ -302,8 +303,8 @@ func (chain *BlockChain) Next() Block {
 			return errors.New("区块数据文件操作失败。")
 		}
 		//前一个区块的数据
-		BlockBytes := bucket.Get(chain.IteratorBlockHash[:])
-		iteratorBlock, _ = Deserialize(BlockBytes)
+		blockBytes := bucket.Get(chain.IteratorBlockHash[:])
+		iteratorBlock, _ = Deserialize(blockBytes)
 		//迭代到当前区块后，更新游标的区块内容
 		chain.IteratorBlockHash = iteratorBlock.PrevHash
 		return nil
@@ -314,15 +315,17 @@ func (chain *BlockChain) Next() Block {
 /**
  *该方法用于查询出指定地址的UTXO集合并返回
  */
-func (chain *BlockChain) SearchUTXOS(addr string) ([]transaction.UTXO) {
+func (chain *BlockChain) SearchUTXOSFromDB(addr string) []transaction.UTXO {
 	//花费记录的容器
 	spend := make([]transaction.TxInput, 0)
+
 	//收入记录的容器
 	inCome := make([]transaction.UTXO, 0)
 
 	//迭代遍历每一个区块
 	for chain.HasNext() {
 		block := chain.Next() //拿到区块
+		//fmt.Printf("寻找%s可用的钱,遍历到%d区块的第%d笔交易\n", block.Height)
 		//遍历区块中得交易
 		for _, tx := range block.Transactions {
 			//a、遍历每个交易得交易输入
@@ -400,30 +403,36 @@ func (chain *BlockChain) SendTransaction(froms []string, tos []string, amounts [
 		return err
 	}
 	return nil*/
-	newTxs := make([]transaction.Transaction,0)
+	newTxs := make([]transaction.Transaction, 0) //内存中
 
 	for from_index, from := range froms {
-		utxos,totalbalance := chain.GetTUXOsWithBalance(from)
-		if totalbalance < amounts[from_index] {
-			return errors.New("余额不足")
+		utxos, totalBalance := chain.GetTUXOsWithBalance(from, newTxs)
+		//fmt.Printf("%s可花的钱有%f\n", from, totalBalance)
+		if totalBalance < amounts[from_index] {
+			return errors.New(from + "余额不足")
 		}
-		totalbalance = 0
+		totalBalance = 0
 		var utxoNum int
 		for index, utxo := range utxos {
-			totalbalance += utxo.Value
-			if totalbalance > amounts[from_index]{
+			totalBalance += utxo.Value
+			if totalBalance > amounts[from_index] {
 				utxoNum = index
 				break
 			}
 		}
-		newTx,err := transaction.CreateNewTransaction(utxos[0:utxoNum + 1],from,tos[from_index],amounts[from_index])
-		if err != nil{
+		//可花费的钱总额比要花花费的钱数大，才能构建交易
+		newTx, err := transaction.CreateNewTransaction(utxos[0:utxoNum+1],
+			from,
+			tos[from_index],
+			amounts[from_index],
+		)
+		if err != nil {
 			return err
 		}
-		newTxs = append(newTxs,*newTx)
+		newTxs = append(newTxs, *newTx)
 	}
 	err := chain.CreateNewBlock(newTxs)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	return nil
@@ -433,7 +442,7 @@ func (chain *BlockChain) SendTransaction(froms []string, tos []string, amounts [
  *用于实现地址余额查询
  */
 func (chain *BlockChain) GetBalane(addr string) float64 {
-	_, totalBalance := chain.GetTUXOsWithBalance(addr)
+	_, totalBalance := chain.GetTUXOsWithBalance(addr, []transaction.Transaction{})
 	return totalBalance
 }
 
@@ -441,9 +450,51 @@ func (chain *BlockChain) GetBalane(addr string) float64 {
  *该方法用于实现地址余额统计和地址可以花费的utxo
  */
 
-func (chain *BlockChain) GetTUXOsWithBalance(addr string) ([]transaction.UTXO, float64) {
-	utxos := chain.SearchUTXOS(addr)
+func (chain BlockChain) GetTUXOsWithBalance(addr string, txs []transaction.Transaction) ([]transaction.UTXO, float64) {
+	//1、遍历bolt.db文件，找区块种的可用的utxo的集合
+	dbUtxos := chain.SearchUTXOSFromDB(addr)
+	//2、找一遍内存中已经存在但还未存到文件种的交易
+	//看一看是否已经花了某个bolt.db中的utxo，如果utxo花了，则删除
+	memSpends := make([]transaction.TxInput, 0) //内存已花费的
+	memInComes := make([]transaction.UTXO, 0)   //内存中输入
+	for _, tx := range txs {
+		//1、遍历交易输入，把钱记录下来
+		for _, input := range tx.Inputs {
+			if string(input.SciptSig) == addr {
+				memSpends = append(memSpends, input)
+			}
+		}
+		//2、遍历交易输出，把收入的钱记录下来
+		for outIndex, output := range tx.Outputs {
+			if string(output.ScriptPub) == addr {
+				utxo := transaction.UTXO{
+					TxId:     tx.TxHash,
+					Vout:     outIndex,
+					TxOutput: output,
+				}
+				memInComes = append(memInComes, utxo)
+			}
+		}
+	}
+
+	//3、经过内存中的交易的遍历后，剩下的才是最终可用的utxo集合
+	utxos := make([]transaction.UTXO, 0)
+	var isUYXOSpend bool
+	for _, utxo := range dbUtxos {
+		isUYXOSpend = false
+		for _, spend := range memSpends {
+			if string(utxo.TxId[:]) == string(spend.TxId[:]) && utxo.Vout == spend.Vout && string(utxo.ScriptPub) == string(spend.SciptSig) {
+				isUYXOSpend = true
+			}
+		}
+		if ! isUYXOSpend {
+			utxos = append(utxos,utxo)
+		}
+	}
+	//把内存中的收入也加入到
+	utxos = append(utxos,memInComes...)
 	var totalBalance float64
+	//fmt.Printf("%s有%d张可用\n", addr, len(utxos))
 	//fmt.Println("找到了可花费的：",utxos)
 	for _, utxo := range utxos {
 		//fmt.Print("可花费余额:",index,utxo)
@@ -451,4 +502,8 @@ func (chain *BlockChain) GetTUXOsWithBalance(addr string) ([]transaction.UTXO, f
 		totalBalance += utxo.Value
 	}
 	return utxos, totalBalance
+}
+
+func (chain *BlockChain) GetNewAddress() (string,error) {
+	return chaincrypto.NewAddress()
 }

@@ -41,6 +41,8 @@ func (cmd *CmdClient) Run() {
 		cmd.GetAllBlocks()
 	case GETBALANCE:
 		cmd.GetBalance()
+	case GETNEWADDRESS:
+		cmd.GetNewAddress()
 	case HELP:
 		//fmt.Println("调用帮助说明")
 		cmd.Help()
@@ -86,7 +88,6 @@ func (cmd *CmdClient) GenerateGenesis() {
 }
 
 func (cmd *CmdClient) SendTransaction() {
-	//-data
 	createBlock := flag.NewFlagSet(SENDTRANSACTION, flag.ExitOnError)
 	from := createBlock.String("from", "", "交易发起人地址")
 	to := createBlock.String("to", "", "交易接收者地址")
@@ -125,7 +126,6 @@ func (cmd *CmdClient) SendTransaction() {
 	}
 
 	//1、先判断是否已生成创世区块，如果没有创世区块，提示用户先生成
-	//[0000000]
 	hashBig := new(big.Int)
 	hashBig.SetBytes(cmd.Chain.LastBlock.Hash[:])
 	if hashBig.Cmp(big.NewInt(0)) == 0 { //没有创世区块
@@ -140,7 +140,6 @@ func (cmd *CmdClient) SendTransaction() {
 	}
 	fmt.Println("交易发送成功")
 }
-
 
 func (cmd *CmdClient) GetLastBlock() {
 	lastBlock := cmd.Chain.GetLastBlock()
@@ -172,11 +171,11 @@ func (cmd *CmdClient) GetAllBlocks() {
 		fmt.Print("区块中的交易信息：\n")
 		for index, tx := range block.Transactions {
 			fmt.Printf("   第%d笔交易,交易hash:%x\n", index, tx.TxHash)
-			for inputIndex, _ := range tx.Inputs {
-				fmt.Printf("       第%d笔交易输入\n", inputIndex)
+			for inputIndex, input := range tx.Inputs {
+				fmt.Printf("       第%d笔交易输入,%s花了%x的%d的钱\n", inputIndex, input.SciptSig, input.Vout, input.TxId)
 			}
 			for outputIndex, output := range tx.Outputs {
-				fmt.Printf("       第%d笔交易输出,面额为：%f\n", outputIndex, output.Value)
+				fmt.Printf("       第%d笔交易输出:%s,实现收入:%f\n", outputIndex, output.Value, output.ScriptPub)
 			}
 		}
 		fmt.Println()
@@ -187,9 +186,9 @@ func (cmd *CmdClient) GetAllBlocks() {
  *获取地址余额
  */
 func (cmd *CmdClient) GetBalance() {
-	getbalance := flag.NewFlagSet(GETBALANCE,flag.ExitOnError)
+	getbalance := flag.NewFlagSet(GETBALANCE, flag.ExitOnError)
 	var addr string
-	getbalance.StringVar(&addr,"address","","用户地址")
+	getbalance.StringVar(&addr, "address", "", "用户地址")
 	getbalance.Parse(os.Args[2:])
 
 	blockChain := cmd.Chain
@@ -197,18 +196,37 @@ func (cmd *CmdClient) GetBalance() {
 	//1、先判断是否有创世区块
 	hashBig := new(big.Int)
 	hashBig.SetBytes(blockChain.LastBlock.Hash[:])
-	if hashBig.Cmp(big.NewInt(0)) == 0{
+	if hashBig.Cmp(big.NewInt(0)) == 0 {
 		fmt.Println("抱歉，该链不存在，无法查询")
 		return
 	}
 
 	balance := blockChain.GetBalane(addr)
-	fmt.Printf("地址%s的余额：%f\n",addr,balance)
+	fmt.Printf("地址%s的余额：%f\n", addr, balance)
 }
 
 func (cmd *CmdClient) Default() {
 	fmt.Println("go run main.go：Unknown subcommand.")
 	fmt.Println("Run 'go run main.go help' for usage.")
+}
+
+/**
+ *定义新方法：用于生成新地址
+ */
+func (cmd *CmdClient) GetNewAddress() {
+	getNewAddress := flag.NewFlagSet(GETNEWADDRESS,flag.ExitOnError)
+	getNewAddress.Parse(os.Args[2:])
+
+	if len(os.Args[2:]) > 0{
+		fmt.Println("抱歉生成新地址功能无法解析参数")
+		return
+	}
+	address,err := cmd.Chain.GetNewAddress()
+	if err !=nil{
+		fmt.Println("生成地址遇到错误",err)
+		return
+	}
+	fmt.Println("生成新地址:",address)
 }
 
 /**
@@ -226,6 +244,7 @@ func (cmd *CmdClient) Help() {
 	fmt.Println("    getlastblock    get the lasted block data")
 	fmt.Println("    getbalance    this is a command that can the balance of specified address")
 	fmt.Println("    getallblocks    return a blocks data to user.")
+	fmt.Println("        getnewaddress       this command used to create a new address by bitcoin algorithm")
 	fmt.Println("    help    use the command can print usage infomation")
 	fmt.Println()
 	fmt.Println("Use bee help [command] for more information about a command")

@@ -6,5 +6,6 @@ const (
 	GETLASTBLOCK = "getlastblock"
 	GETALLBLOCKS = "getallblocks"
 	GETBALANCE = "getbalance"
+	GETNEWADDRESS = "getnewaddress"
 	HELP = "help"
 )

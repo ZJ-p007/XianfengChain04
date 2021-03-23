@@ -2,9 +2,11 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/gob"
 	"encoding/json"
+	"golang.org/x/crypto/ripemd160"
 )
 
 /**
@@ -50,6 +52,24 @@ func JSONArray2String(array string) ([]string, error) {
  */
 func JSONArray2Float(array string) ([]float64, error) {
 	var floatSlice []float64
-	err :=json.Unmarshal([]byte(array),&floatSlice)
-	return floatSlice,err
+	err := json.Unmarshal([]byte(array), &floatSlice)
+	return floatSlice, err
+}
+
+/**
+ *sha256计算
+ */
+func Hash256(data []byte) []byte {
+	sha := sha256.New()
+	sha.Write(data)
+	return sha.Sum(nil)
+}
+
+/**
+ *ripemd160计算
+ */
+func HashRipemd160(data []byte) []byte {
+	hashripe := ripemd160.New()
+	hashripe.Write(data)
+	return hashripe.Sum(nil)
 }

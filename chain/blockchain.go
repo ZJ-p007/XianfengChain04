@@ -47,13 +47,19 @@ func CreateChain(db *bolt.DB) BlockChain {
 *创建coinbaase交易的方法
  */
 func (chain *BlockChain) CreateCoinBase(addr string) error {
-	//1、创建一笔coinbase交易
+	//1、对用户传入的addr进行有效检查
+	isAddrValid := chaincrypto.CheckAddress(addr)
+	if ! isAddrValid {
+		return errors.New("抱歉地址不合法，请检查后重试")
+	}
+
+	//2、创建一笔coinbase交易
 	coinbase, err := transaction.CreateCoinBase(addr)
 	if err != nil {
 		//fmt.Println("创建coinbase交易遇到错误")
 		return err
 	}
-	//2、把coinbase交易到区块中
+	//3、把coinbase交易到区块中
 	err = chain.CreatGenesis([]transaction.Transaction{*coinbase})
 	return err
 }
@@ -403,6 +409,16 @@ func (chain *BlockChain) SendTransaction(froms []string, tos []string, amounts [
 		return err
 	}
 	return nil*/
+
+	//对所有的from和to进行检查
+	for i := 0; i < len(froms); i++ {
+		isFromValid := chaincrypto.CheckAddress(froms[i])
+		isToValid := chaincrypto.CheckAddress(tos[i])
+		if isFromValid || isToValid{
+			return errors.New("地址不合法，请重试！！")
+		}
+	}
+
 	newTxs := make([]transaction.Transaction, 0) //内存中
 
 	for from_index, from := range froms {
@@ -441,9 +457,15 @@ func (chain *BlockChain) SendTransaction(froms []string, tos []string, amounts [
 /**
  *用于实现地址余额查询
  */
-func (chain *BlockChain) GetBalane(addr string) float64 {
+func (chain *BlockChain) GetBalane(addr string) (float64,error) {
+	//1、检查地址的合法性
+	isAddrValid := chaincrypto.CheckAddress(addr)
+	if ! isAddrValid{
+		return 0,errors.New("地址不符合规范")
+	}
+	//2、获取地址的余额
 	_, totalBalance := chain.GetTUXOsWithBalance(addr, []transaction.Transaction{})
-	return totalBalance
+	return totalBalance,nil
 }
 
 /**
@@ -488,11 +510,11 @@ func (chain BlockChain) GetTUXOsWithBalance(addr string, txs []transaction.Trans
 			}
 		}
 		if ! isUYXOSpend {
-			utxos = append(utxos,utxo)
+			utxos = append(utxos, utxo)
 		}
 	}
 	//把内存中的收入也加入到
-	utxos = append(utxos,memInComes...)
+	utxos = append(utxos, memInComes...)
 	var totalBalance float64
 	//fmt.Printf("%s有%d张可用\n", addr, len(utxos))
 	//fmt.Println("找到了可花费的：",utxos)
@@ -504,6 +526,6 @@ func (chain BlockChain) GetTUXOsWithBalance(addr string, txs []transaction.Trans
 	return utxos, totalBalance
 }
 
-func (chain *BlockChain) GetNewAddress() (string,error) {
+func (chain *BlockChain) GetNewAddress() (string, error) {
 	return chaincrypto.NewAddress()
 }

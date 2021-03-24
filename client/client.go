@@ -172,10 +172,10 @@ func (cmd *CmdClient) GetAllBlocks() {
 		for index, tx := range block.Transactions {
 			fmt.Printf("   第%d笔交易,交易hash:%x\n", index, tx.TxHash)
 			for inputIndex, input := range tx.Inputs {
-				fmt.Printf("       第%d笔交易输入,%s花了%x的%d的钱\n", inputIndex, input.SciptSig, input.Vout, input.TxId)
+				fmt.Printf("       第%d笔交易输入,%s花了%x的%d的钱\n", inputIndex, input.SciptSig, input.TxId, input.Vout)
 			}
 			for outputIndex, output := range tx.Outputs {
-				fmt.Printf("       第%d笔交易输出:%s,实现收入:%f\n", outputIndex, output.Value, output.ScriptPub)
+				fmt.Printf("       第%d笔交易输出,%s实现收入%f\n", outputIndex, output.ScriptPub, output.Value)
 			}
 		}
 		fmt.Println()
@@ -201,7 +201,11 @@ func (cmd *CmdClient) GetBalance() {
 		return
 	}
 
-	balance := blockChain.GetBalane(addr)
+	balance,err := blockChain.GetBalane(addr)
+	if err != nil{
+		fmt.Println(err.Error())
+		return
+	}
 	fmt.Printf("地址%s的余额：%f\n", addr, balance)
 }
 

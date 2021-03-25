@@ -3,6 +3,7 @@ package chain
 import (
 	"XianfengChain04/transaction"
 	"XianfengChain04/wallet"
+	"crypto/ecdsa"
 	"errors"
 	"github.com/bolt"
 	"math/big"
@@ -40,15 +41,15 @@ func CreateChain(db *bolt.DB) (*BlockChain, error) {
 	//创建或则加载wallet结构体对象
 	walet, err := wallet.LoadAddrAndKeyPairsFromDB(db)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	blockChain :=  BlockChain{
+	blockChain := BlockChain{
 		DB:                db,
 		LastBlock:         lastBlock,
 		IteratorBlockHash: lastBlock.Hash,
 		Wallet:            *walet,
 	}
-	return &blockChain,err
+	return &blockChain, err
 }
 
 /**
@@ -553,4 +554,26 @@ func (chain *BlockChain) GetAddressList() ([]string, error) {
 		addList = append(addList, add)
 	}
 	return addList, nil
+}
+
+/**
+ *导出指定地址的私钥
+ */
+func (chain *BlockChain) DumpPrivkey(addr string) (*ecdsa.PrivateKey,error) {
+	//1、地址规范性检查
+	isAddrValid := chain.Wallet.CheckAddress(addr)
+	if ! isAddrValid{
+		return nil,errors.New("地址不符合规范，请重试！！！")
+	}
+	//2、钱包为空
+	if chain.Wallet.Address == nil{
+		return nil,errors.New("当前钱包未找到对应地址的私钥")
+	}
+	//3、到wallet中找对应的keypair
+	keyPair := chain.Wallet.Address[addr]
+	if keyPair == nil{
+		return nil,errors.New("当前钱包未找到对应的地址的私钥")
+	}
+	//4、找到了具体结果、将结果返回
+	return keyPair.Pri,nil
 }

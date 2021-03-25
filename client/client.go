@@ -45,6 +45,8 @@ func (cmd *CmdClient) Run() {
 		cmd.GetNewAddress()
 	case LISTADDRESS:
 		cmd.ListAddress()
+	case DUMPPRIVKEY:
+		cmd.DumpPrivKey()
 	case HELP:
 		//fmt.Println("调用帮助说明")
 		cmd.Help()
@@ -253,6 +255,27 @@ func (cmd *CmdClient) ListAddress() {
 	}
 
 }
+
+/**
+ *该方法用于导出指定地址的私钥
+ */
+func (cmd *CmdClient) DumpPrivKey() {
+	dumpPrivkey := flag.NewFlagSet(DUMPPRIVKEY,flag.ExitOnError)
+	address := dumpPrivkey.String("address","","要导出的私钥的地址")
+	dumpPrivkey.Parse(os.Args[2:])
+	if len(os.Args[2:]) > 2{
+		fmt.Println("无法解析参数，请检查后重试！！！")
+		return
+	}
+	pri,err:= cmd.Chain.DumpPrivkey(*address)
+	if err != nil{
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("私钥是:%x\n",pri.D.Bytes())
+}
+
+
 
 /**
  *该方法用于打印输出项目的使用和说明信息，相当于项目的帮助文档和说明书

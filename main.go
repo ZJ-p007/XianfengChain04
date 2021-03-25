@@ -3,6 +3,7 @@ package main
 import (
 	"XianfengChain04/chain"
 	"XianfengChain04/client"
+	"fmt"
 	"github.com/bolt"
 )
 
@@ -15,8 +16,12 @@ func main() {
 		panic(err.Error())
 	}
 	defer db.Close()
-	blockChain := chain.CreateChain(db)
-	cmdClient := client.CmdClient{blockChain}
+	blockChain,err := chain.CreateChain(db)
+	if err != nil{
+		fmt.Println(err.Error())
+		return
+	}
+	cmdClient := client.CmdClient{*blockChain}
 	cmdClient.Run()
 
 	//fmt.Println("BlockChain")

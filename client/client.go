@@ -43,6 +43,8 @@ func (cmd *CmdClient) Run() {
 		cmd.GetBalance()
 	case GETNEWADDRESS:
 		cmd.GetNewAddress()
+	case LISTADDRESS:
+		cmd.ListAddress()
 	case HELP:
 		//fmt.Println("调用帮助说明")
 		cmd.Help()
@@ -231,6 +233,25 @@ func (cmd *CmdClient) GetNewAddress() {
 		return
 	}
 	fmt.Println("生成新地址:",address)
+}
+
+func (cmd *CmdClient) ListAddress() {
+	listAddress := flag.NewFlagSet(LISTADDRESS,flag.ExitOnError)
+	listAddress.Parse(os.Args[2:])
+	if len(os.Args[2:]) > 0{
+		fmt.Println("无法解析参数，请检查后重试！！！")
+		return
+	}
+	addList ,err := cmd.Chain.GetAddressList()
+	if err != nil{
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println("获取地址列表成功，地址信息如下：")
+	for index, add := range addList {
+		fmt.Printf("[%d]:%s\n", index+1, add)
+	}
+
 }
 
 /**

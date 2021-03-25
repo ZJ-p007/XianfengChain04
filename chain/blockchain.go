@@ -1,8 +1,8 @@
 package chain
 
 import (
-	"XianfengChain04/chaincrypto"
 	"XianfengChain04/transaction"
+	"XianfengChain04/wallet"
 	"errors"
 	"github.com/bolt"
 	"math/big"
@@ -17,11 +17,12 @@ const LASTHASH = "lasthash"
 type BlockChain struct {
 	//Blocks []Block
 	DB                *bolt.DB
-	LastBlock         Block    //最新最后的区块
-	IteratorBlockHash [32]byte //表示当前迭代到了哪个区块，改变了用于记录跌倒到的区块hash
+	LastBlock         Block         //最新最后的区块
+	IteratorBlockHash [32]byte      //表示当前迭代到了哪个区块，改变了用于记录跌倒到的区块hash
+	Wallet            wallet.Wallet //引入wallet字段作为Blockchain的个属性
 }
 
-func CreateChain(db *bolt.DB) BlockChain {
+func CreateChain(db *bolt.DB) (*BlockChain, error) {
 	var lastBlock Block
 	db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BLOCKS))
@@ -36,19 +37,26 @@ func CreateChain(db *bolt.DB) BlockChain {
 		lastBlock, _ = Deserialize(lastBlockBytes)
 		return nil
 	})
-	return BlockChain{
+	//创建或则加载wallet结构体对象
+	walet, err := wallet.LoadAddrAndKeyPairsFromDB(db)
+	if err != nil {
+		return nil,err
+	}
+	blockChain :=  BlockChain{
 		DB:                db,
 		LastBlock:         lastBlock,
 		IteratorBlockHash: lastBlock.Hash,
+		Wallet:            *walet,
 	}
+	return &blockChain,err
 }
 
 /**
-*创建coinbaase交易的方法
+*创建coinbase交易的方法
  */
 func (chain *BlockChain) CreateCoinBase(addr string) error {
 	//1、对用户传入的addr进行有效检查
-	isAddrValid := chaincrypto.CheckAddress(addr)
+	isAddrValid := chain.Wallet.CheckAddress(addr)
 	if ! isAddrValid {
 		return errors.New("抱歉地址不合法，请检查后重试")
 	}
@@ -412,9 +420,9 @@ func (chain *BlockChain) SendTransaction(froms []string, tos []string, amounts [
 
 	//对所有的from和to进行检查
 	for i := 0; i < len(froms); i++ {
-		isFromValid := chaincrypto.CheckAddress(froms[i])
-		isToValid := chaincrypto.CheckAddress(tos[i])
-		if isFromValid || isToValid{
+		isFromValid := chain.Wallet.CheckAddress(froms[i])
+		isToValid := chain.Wallet.CheckAddress(tos[i])
+		if isFromValid || isToValid {
 			return errors.New("地址不合法，请重试！！")
 		}
 	}
@@ -445,6 +453,9 @@ func (chain *BlockChain) SendTransaction(froms []string, tos []string, amounts [
 		if err != nil {
 			return err
 		}
+
+		//对构建的交易newTx进行签名
+
 		newTxs = append(newTxs, *newTx)
 	}
 	err := chain.CreateNewBlock(newTxs)
@@ -457,15 +468,15 @@ func (chain *BlockChain) SendTransaction(froms []string, tos []string, amounts [
 /**
  *用于实现地址余额查询
  */
-func (chain *BlockChain) GetBalane(addr string) (float64,error) {
+func (chain *BlockChain) GetBalane(addr string) (float64, error) {
 	//1、检查地址的合法性
-	isAddrValid := chaincrypto.CheckAddress(addr)
-	if ! isAddrValid{
-		return 0,errors.New("地址不符合规范")
+	isAddrValid := chain.Wallet.CheckAddress(addr)
+	if ! isAddrValid {
+		return 0, errors.New("地址不符合规范")
 	}
 	//2、获取地址的余额
 	_, totalBalance := chain.GetTUXOsWithBalance(addr, []transaction.Transaction{})
-	return totalBalance,nil
+	return totalBalance, nil
 }
 
 /**
@@ -527,5 +538,19 @@ func (chain BlockChain) GetTUXOsWithBalance(addr string, txs []transaction.Trans
 }
 
 func (chain *BlockChain) GetNewAddress() (string, error) {
-	return chaincrypto.NewAddress()
+	return chain.Wallet.NewAddress()
+}
+
+/**
+ *获取钱包中的地址列表
+ */
+func (chain *BlockChain) GetAddressList() ([]string, error) {
+	if chain.Wallet.Address == nil {
+		return nil, errors.New("暂无地址")
+	}
+	addList := make([]string, 0)
+	for add, _ := range chain.Wallet.Address {
+		addList = append(addList, add)
+	}
+	return addList, nil
 }

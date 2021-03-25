@@ -1,17 +1,10 @@
 package chaincrypto
 
-import (
-	"XianfengChain04/utils"
-	"bytes"
-	"crypto/elliptic"
-	base58 "github.com"
-)
-
 /**
  *新生成一个比特币地址
  */
-func NewAddress() (string, error) {
-	curve := elliptic.P256()
+//func NewAddress() (string, error) {
+/*	curve := elliptic.P256()
 	//1、生成私钥
 	pri, err := NewPriKey(curve)
 	if err != nil {
@@ -41,14 +34,14 @@ func NewAddress() (string, error) {
 	originAddress := append(versionPub, check...)
 
 	//9、base58编码
-	return base58.Encode(originAddress), nil
-}
+	return base58.Encode(originAddress), nil*/
+//}
 
 /**
  *该函数用于检查地址合法，如果符合地址规范，返回true，
  *如果不符合，返回false
  */
-func CheckAddress(addr string) bool {
+/*func CheckAddress(addr string) bool {
 	//1、使用base58对传入的地址进行解码
 	reAddBytes := base58.Decode(addr)// versionPubHash  -> check
 
@@ -71,5 +64,5 @@ func CheckAddress(addr string) bool {
 
 	return bytes.Compare(reCheck,check) == 0
 
-}
+}*/
 //1J1suFWuuY9Xzic3NNPXnRtA7TwyrtNnZR
